@@ -31,6 +31,13 @@ function parseEmails(text) {
     .filter(e => e);
 }
 
+// Globals used across the application. Declared early to prevent
+// ReferenceError when they are accessed before initialization.
+let tokenClient;
+let gapiInited = false;
+let gisInited = false;
+let charts = [];
+
 const credModal = new bootstrap.Modal(
   document.getElementById('credentialsModal')
 );
@@ -115,11 +122,6 @@ function formatError(err) {
   );
 }
 
-let tokenClient;
-let gapiInited = false;
-let gisInited = false;
-let charts = [];
-
 window.gapiLoaded = function() {
   gapi.load('client', initializeGapiClient);
 };
@@ -173,27 +175,35 @@ function renderStats(stats) {
   stats.top_by_time.forEach(([email, time]) =>
     lines.push(`  ${email}: ${time.toFixed(2)} hrs`)
   );
-  lines.push('');
-  lines.push('Exec Team:');
-  for (const [email, data] of Object.entries(stats.exec_team)) {
-    lines.push(`  ${email}: ${data.count} meetings, ${data.time.toFixed(2)} hrs`);
+  if (Object.keys(stats.exec_team || {}).length) {
+    lines.push('');
+    lines.push('Exec Team:');
+    for (const [email, data] of Object.entries(stats.exec_team)) {
+      lines.push(`  ${email}: ${data.count} meetings, ${data.time.toFixed(2)} hrs`);
+    }
   }
-  lines.push('');
-  lines.push('Gartner Analysts:');
-  for (const [email, data] of Object.entries(stats.gartner_analysts)) {
-    lines.push(`  ${email}: ${data.count} meetings, ${data.time.toFixed(2)} hrs`);
+  if (Object.keys(stats.gartner_analysts || {}).length) {
+    lines.push('');
+    lines.push('Gartner Analysts:');
+    for (const [email, data] of Object.entries(stats.gartner_analysts)) {
+      lines.push(`  ${email}: ${data.count} meetings, ${data.time.toFixed(2)} hrs`);
+    }
   }
-  lines.push('');
-  lines.push('Direct Reports:');
-  for (const [email, data] of Object.entries(stats.direct_reports)) {
-    lines.push(`  ${email}: ${data.count} meetings, ${data.time.toFixed(2)} hrs`);
+  if (Object.keys(stats.direct_reports || {}).length) {
+    lines.push('');
+    lines.push('Direct Reports:');
+    for (const [email, data] of Object.entries(stats.direct_reports)) {
+      lines.push(`  ${email}: ${data.count} meetings, ${data.time.toFixed(2)} hrs`);
+    }
   }
-  lines.push('');
-  lines.push('Gartner Meetings:');
-  for (const [analyst, data] of Object.entries(stats.gartner_meetings)) {
-    lines.push(
-      `  ${analyst}: ${data.count} meetings, ${data.time.toFixed(2)} hrs (Inquiry: ${data.inquiryCount}, Briefing: ${data.briefingCount})`
-    );
+  if (Object.keys(stats.gartner_meetings || {}).length) {
+    lines.push('');
+    lines.push('Gartner Meetings:');
+    for (const [analyst, data] of Object.entries(stats.gartner_meetings)) {
+      lines.push(
+        `  ${analyst}: ${data.count} meetings, ${data.time.toFixed(2)} hrs (Inquiry: ${data.inquiryCount}, Briefing: ${data.briefingCount})`
+      );
+    }
   }
   document.getElementById('output').textContent = lines.join('\n');
   renderCharts(stats);
@@ -239,16 +249,16 @@ function renderCharts(stats) {
   const names = new Set([
     ...stats.top_by_count.map(([e]) => e),
     ...stats.top_by_time.map(([e]) => e),
-    ...Object.keys(stats.exec_team),
-    ...Object.keys(stats.gartner_analysts),
-    ...Object.keys(stats.gartner_meetings)
+    ...Object.keys(stats.exec_team || {}),
+    ...Object.keys(stats.gartner_analysts || {}),
+    ...Object.keys(stats.gartner_meetings || {})
   ]);
   for (const name of names) {
     const data =
       stats.per_attendee[name] ||
-      stats.exec_team[name] ||
-      stats.gartner_analysts[name] ||
-      stats.gartner_meetings[name];
+      (stats.exec_team || {})[name] ||
+      (stats.gartner_analysts || {})[name] ||
+      (stats.gartner_meetings || {})[name];
     if (!data) continue;
     const canvas = document.createElement('canvas');
     canvas.height = 200;
@@ -306,10 +316,17 @@ async function refresh() {
 async function fetchConfig() {
   const stored = getStakeholderConfig();
   if (stored) return stored;
-  const res = await fetch('config.json');
-  const cfg = await res.json();
-  saveStakeholderConfig(cfg);
-  return cfg;
+  try {
+    const res = await fetch('config.json');
+    if (!res.ok) throw new Error('Failed to load');
+    const cfg = await res.json();
+    saveStakeholderConfig(cfg);
+    return cfg;
+  } catch (e) {
+    const cfg = { exec_team: [], gartner_analysts: [], direct_reports: [] };
+    saveStakeholderConfig(cfg);
+    return cfg;
+  }
 }
 
 async function fetchEvents() {
