@@ -7,14 +7,14 @@ function promptForCredentials() {
   if (!clientId || !apiKey) {
     throw new Error('Credentials are required.');
   }
-  localStorage.setItem('CLIENT_ID', clientId);
-  localStorage.setItem('API_KEY', apiKey);
+  sessionStorage.setItem('CLIENT_ID', clientId);
+  sessionStorage.setItem('API_KEY', apiKey);
   return { clientId, apiKey };
 }
 
 function loadCredentials() {
-  let clientId = localStorage.getItem('CLIENT_ID');
-  let apiKey = localStorage.getItem('API_KEY');
+  let clientId = sessionStorage.getItem('CLIENT_ID');
+  let apiKey = sessionStorage.getItem('API_KEY');
   if (!clientId || !apiKey) {
     ({ clientId, apiKey } = promptForCredentials());
   }
@@ -24,26 +24,33 @@ function loadCredentials() {
 document.getElementById('refresh').addEventListener('click', refresh);
 document.getElementById('refresh').disabled = true;
 document.getElementById('config').addEventListener('click', () => {
-  promptForCredentials();
-  location.reload();
+  ({ clientId: CLIENT_ID, apiKey: API_KEY } = promptForCredentials());
+  gapi.load('client:auth2', initClient);
 });
 
-const { clientId: CLIENT_ID, apiKey: API_KEY } = loadCredentials();
+let { clientId: CLIENT_ID, apiKey: API_KEY } = loadCredentials();
 
 window.gapiLoaded = function() {
   gapi.load('client:auth2', initClient);
 };
 
 async function initClient() {
-  await gapi.client.init({
-    apiKey: API_KEY,
-    clientId: CLIENT_ID,
-    discoveryDocs: [
-      'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'
-    ],
-    scope: 'https://www.googleapis.com/auth/calendar.readonly'
-  });
-  document.getElementById('refresh').disabled = false;
+  const refreshBtn = document.getElementById('refresh');
+  refreshBtn.disabled = true;
+  try {
+    await gapi.client.init({
+      apiKey: API_KEY,
+      clientId: CLIENT_ID,
+      discoveryDocs: [
+        'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'
+      ],
+      scope: 'https://www.googleapis.com/auth/calendar.readonly'
+    });
+  } catch (err) {
+    document.getElementById('output').textContent =
+      'Failed to initialize: ' + (err.message || String(err));
+  }
+  refreshBtn.disabled = false;
 }
 
 function renderStats(stats) {
