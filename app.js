@@ -40,14 +40,17 @@ document.getElementById('saveCredentials').addEventListener('click', () => {
   ({ clientId: CLIENT_ID } = getCredentials());
   credModal.hide();
   document.getElementById('view-creds').classList.remove('d-none');
-  if (gapiInited) {
-    gapi.load('client:auth2', initClient);
+  if (gisInited) {
+    initTokenClient();
   }
 });
 
 let { clientId: CLIENT_ID } = getCredentials();
 if (CLIENT_ID) {
   document.getElementById('view-creds').classList.remove('d-none');
+  if (gisInited) {
+    initTokenClient();
+  }
 }
 
 function formatError(err) {
@@ -59,31 +62,49 @@ function formatError(err) {
   );
 }
 
+let tokenClient;
 let gapiInited = false;
+let gisInited = false;
+
 window.gapiLoaded = function() {
-  gapiInited = true;
-  if (CLIENT_ID) {
-    gapi.load('client:auth2', initClient);
-  }
+  gapi.load('client', initializeGapiClient);
 };
 
-async function initClient() {
-  const refreshBtn = document.getElementById('refresh');
-  refreshBtn.disabled = true;
+async function initializeGapiClient() {
   try {
     await gapi.client.init({
-      clientId: CLIENT_ID,
       discoveryDocs: [
         'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'
-      ],
-      scope: 'https://www.googleapis.com/auth/calendar.readonly'
+      ]
     });
+    gapiInited = true;
+    maybeEnableRefresh();
   } catch (err) {
     console.error('gapi.client.init failed', err);
     document.getElementById('output').textContent =
       'Failed to initialize: ' + formatError(err);
   }
-  refreshBtn.disabled = false;
+}
+
+window.gisLoaded = function() {
+  gisInited = true;
+  if (CLIENT_ID) {
+    initTokenClient();
+  }
+};
+
+function initTokenClient() {
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: 'https://www.googleapis.com/auth/calendar.readonly',
+    callback: () => {}
+  });
+  maybeEnableRefresh();
+}
+
+function maybeEnableRefresh() {
+  const refreshBtn = document.getElementById('refresh');
+  refreshBtn.disabled = !(gapiInited && tokenClient);
 }
 
 function renderStats(stats) {
@@ -112,15 +133,25 @@ function renderStats(stats) {
 
 async function refresh() {
   document.getElementById('output').textContent = 'Loading...';
-  try {
-    await gapi.auth2.getAuthInstance().signIn();
-    const stats = await getStats();
-    renderStats(stats);
-  } catch (err) {
-    console.error('Error refreshing stats', err);
-    document.getElementById('output').textContent =
-      'Error: ' + formatError(err);
-  }
+  tokenClient.callback = async resp => {
+    if (resp.error !== undefined) {
+      console.error('Error retrieving access token', resp);
+      document.getElementById('output').textContent =
+        'Error: ' + formatError(resp);
+      return;
+    }
+    gapi.client.setToken(resp);
+    try {
+      const stats = await getStats();
+      renderStats(stats);
+    } catch (err) {
+      console.error('Error refreshing stats', err);
+      document.getElementById('output').textContent =
+        'Error: ' + formatError(err);
+    }
+  };
+  const prompt = gapi.client.getToken() ? '' : 'consent';
+  tokenClient.requestAccessToken({ prompt });
 }
 
 async function fetchConfig() {
