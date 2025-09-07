@@ -20,7 +20,10 @@ Gartner analysts, or direct reports.
 3. When you first launch the app you will be prompted in the browser to enter
    your OAuth client ID and client secret. The app stores these in
    `sessionStorage` so you only need to provide them once per session.
-4. Optionally edit `config.json` to specify emails for key groups:
+4. Click **Configure Stakeholders** in the app to set email addresses for the
+   executive team, Gartner analysts, and direct reports. These values are saved
+   in `localStorage` and override the defaults in `config.json`.
+5. Optionally edit `config.json` to specify default emails for key groups:
 
 ```json
 {
