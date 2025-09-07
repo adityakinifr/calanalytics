@@ -30,6 +30,15 @@ document.getElementById('config').addEventListener('click', () => {
 
 let { clientId: CLIENT_ID, apiKey: API_KEY } = loadCredentials();
 
+function formatError(err) {
+  if (!err) return 'Unknown error';
+  return (
+    err.result?.error?.message ||
+    err.message ||
+    JSON.stringify(err)
+  );
+}
+
 window.gapiLoaded = function() {
   gapi.load('client:auth2', initClient);
 };
@@ -47,8 +56,9 @@ async function initClient() {
       scope: 'https://www.googleapis.com/auth/calendar.readonly'
     });
   } catch (err) {
+    console.error('gapi.client.init failed', err);
     document.getElementById('output').textContent =
-      'Failed to initialize: ' + (err.message || String(err));
+      'Failed to initialize: ' + formatError(err);
   }
   refreshBtn.disabled = false;
 }
@@ -84,8 +94,9 @@ async function refresh() {
     const stats = await getStats();
     renderStats(stats);
   } catch (err) {
+    console.error('Error refreshing stats', err);
     document.getElementById('output').textContent =
-      'Error: ' + (err.message || String(err));
+      'Error: ' + formatError(err);
   }
 }
 
