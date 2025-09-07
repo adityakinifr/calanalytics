@@ -1,0 +1,8 @@
+{
+  "name": "calendar-analytics-extension",
+  "version": "1.0.0",
+  "description": "Chrome extension for Google Calendar analytics",
+  "scripts": {
+    "test": "echo \"No tests specified\""
+  }
+}
