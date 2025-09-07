@@ -1,12 +1,10 @@
-function saveCredentials(clientId, apiKey) {
+function saveCredentials(clientId) {
   sessionStorage.setItem('CLIENT_ID', clientId);
-  sessionStorage.setItem('API_KEY', apiKey);
 }
 
 function getCredentials() {
   return {
-    clientId: sessionStorage.getItem('CLIENT_ID'),
-    apiKey: sessionStorage.getItem('API_KEY')
+    clientId: sessionStorage.getItem('CLIENT_ID')
   };
 }
 
@@ -18,31 +16,28 @@ document.getElementById('refresh').addEventListener('click', refresh);
 document.getElementById('refresh').disabled = true;
 document.getElementById('config').addEventListener('click', () => {
   document.getElementById('clientIdInput').value = CLIENT_ID || '';
-  document.getElementById('apiKeyInput').value = API_KEY || '';
   document.getElementById('clientIdInput').removeAttribute('readonly');
-  document.getElementById('apiKeyInput').removeAttribute('readonly');
   document.getElementById('saveCredentials').classList.remove('d-none');
   credModal.show();
 });
 
 document.getElementById('view-creds').addEventListener('click', () => {
   document.getElementById('clientIdInput').value = CLIENT_ID || '';
-  document.getElementById('apiKeyInput').value = API_KEY || '';
-  document.getElementById('clientIdInput').setAttribute('readonly', true);
-  document.getElementById('apiKeyInput').setAttribute('readonly', true);
+  document
+    .getElementById('clientIdInput')
+    .setAttribute('readonly', true);
   document.getElementById('saveCredentials').classList.add('d-none');
   credModal.show();
 });
 
 document.getElementById('saveCredentials').addEventListener('click', () => {
   const clientId = document.getElementById('clientIdInput').value.trim();
-  const apiKey = document.getElementById('apiKeyInput').value.trim();
-  if (!clientId || !apiKey) {
-    alert('Both Client ID and API Key are required.');
+  if (!clientId) {
+    alert('Client ID is required.');
     return;
   }
-  saveCredentials(clientId, apiKey);
-  ({ clientId: CLIENT_ID, apiKey: API_KEY } = getCredentials());
+  saveCredentials(clientId);
+  ({ clientId: CLIENT_ID } = getCredentials());
   credModal.hide();
   document.getElementById('view-creds').classList.remove('d-none');
   if (gapiInited) {
@@ -50,8 +45,8 @@ document.getElementById('saveCredentials').addEventListener('click', () => {
   }
 });
 
-let { clientId: CLIENT_ID, apiKey: API_KEY } = getCredentials();
-if (CLIENT_ID && API_KEY) {
+let { clientId: CLIENT_ID } = getCredentials();
+if (CLIENT_ID) {
   document.getElementById('view-creds').classList.remove('d-none');
 }
 
@@ -67,7 +62,7 @@ function formatError(err) {
 let gapiInited = false;
 window.gapiLoaded = function() {
   gapiInited = true;
-  if (CLIENT_ID && API_KEY) {
+  if (CLIENT_ID) {
     gapi.load('client:auth2', initClient);
   }
 };
@@ -77,7 +72,6 @@ async function initClient() {
   refreshBtn.disabled = true;
   try {
     await gapi.client.init({
-      apiKey: API_KEY,
       clientId: CLIENT_ID,
       discoveryDocs: [
         'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'
