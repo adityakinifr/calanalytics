@@ -311,10 +311,17 @@ async function refresh() {
     }
     gapi.client.setToken(resp);
     try {
-      const stats = await getStats(message => {
-        output.textContent = message;
-      });
-      renderStats(stats);
+      const finalStats = await getStats(
+        message => {
+          output.textContent = message;
+        },
+        stats => {
+          // Update charts incrementally as data arrives.
+          renderStats(stats);
+        }
+      );
+      // Ensure final stats rendered after all data fetched.
+      renderStats(finalStats);
     } catch (err) {
       console.error('Error refreshing stats', err);
       output.textContent = 'Error: ' + formatError(err);
@@ -340,7 +347,7 @@ async function fetchConfig() {
   }
 }
 
-async function fetchEvents(onProgress) {
+async function fetchEvents(onBatch) {
   const now = new Date();
   const timeMin = new Date(
     now.getTime() - 90 * 24 * 60 * 60 * 1000
@@ -356,8 +363,10 @@ async function fetchEvents(onProgress) {
       orderBy: 'startTime',
       pageToken
     });
-    events = events.concat(res.result.items || []);
-    onProgress?.(events.length);
+    const items = res.result.items || [];
+    events = events.concat(items);
+    // Provide newly fetched items and total count to the caller.
+    onBatch?.(items, events.length);
     pageToken = res.result.nextPageToken;
   } while (pageToken);
   return events;
@@ -486,12 +495,16 @@ function computeStats(events, config) {
   };
 }
 
-async function getStats(onProgress) {
+async function getStats(onProgress, onUpdate) {
   onProgress?.('Loading configuration...');
   const config = await fetchConfig();
+  const events = [];
   onProgress?.('Fetching calendar events...');
-  const events = await fetchEvents(count => {
-    onProgress?.(`Fetching calendar events... (${count})`);
+  await fetchEvents((items, total) => {
+    events.push(...items);
+    onProgress?.(`Fetching calendar events... (${total})`);
+    // Update visualization with partial data.
+    onUpdate?.(computeStats(events, config));
   });
   onProgress?.('Computing statistics...');
   return computeStats(events, config);
