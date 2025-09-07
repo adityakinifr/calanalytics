@@ -1,10 +1,12 @@
-function saveCredentials(clientId) {
+function saveCredentials(clientId, clientSecret) {
   sessionStorage.setItem('CLIENT_ID', clientId);
+  sessionStorage.setItem('CLIENT_SECRET', clientSecret);
 }
 
 function getCredentials() {
   return {
-    clientId: sessionStorage.getItem('CLIENT_ID')
+    clientId: sessionStorage.getItem('CLIENT_ID'),
+    clientSecret: sessionStorage.getItem('CLIENT_SECRET')
   };
 }
 
@@ -16,15 +18,21 @@ document.getElementById('refresh').addEventListener('click', refresh);
 document.getElementById('refresh').disabled = true;
 document.getElementById('config').addEventListener('click', () => {
   document.getElementById('clientIdInput').value = CLIENT_ID || '';
+  document.getElementById('clientSecretInput').value = CLIENT_SECRET || '';
   document.getElementById('clientIdInput').removeAttribute('readonly');
+  document.getElementById('clientSecretInput').removeAttribute('readonly');
   document.getElementById('saveCredentials').classList.remove('d-none');
   credModal.show();
 });
 
 document.getElementById('view-creds').addEventListener('click', () => {
   document.getElementById('clientIdInput').value = CLIENT_ID || '';
+  document.getElementById('clientSecretInput').value = CLIENT_SECRET || '';
   document
     .getElementById('clientIdInput')
+    .setAttribute('readonly', true);
+  document
+    .getElementById('clientSecretInput')
     .setAttribute('readonly', true);
   document.getElementById('saveCredentials').classList.add('d-none');
   credModal.show();
@@ -32,12 +40,13 @@ document.getElementById('view-creds').addEventListener('click', () => {
 
 document.getElementById('saveCredentials').addEventListener('click', () => {
   const clientId = document.getElementById('clientIdInput').value.trim();
-  if (!clientId) {
-    alert('Client ID is required.');
+  const clientSecret = document.getElementById('clientSecretInput').value.trim();
+  if (!clientId || !clientSecret) {
+    alert('Client ID and Client Secret are required.');
     return;
   }
-  saveCredentials(clientId);
-  ({ clientId: CLIENT_ID } = getCredentials());
+  saveCredentials(clientId, clientSecret);
+  ({ clientId: CLIENT_ID, clientSecret: CLIENT_SECRET } = getCredentials());
   credModal.hide();
   document.getElementById('view-creds').classList.remove('d-none');
   if (gisInited) {
@@ -45,8 +54,8 @@ document.getElementById('saveCredentials').addEventListener('click', () => {
   }
 });
 
-let { clientId: CLIENT_ID } = getCredentials();
-if (CLIENT_ID) {
+let { clientId: CLIENT_ID, clientSecret: CLIENT_SECRET } = getCredentials();
+if (CLIENT_ID && CLIENT_SECRET) {
   document.getElementById('view-creds').classList.remove('d-none');
   if (gisInited) {
     initTokenClient();
@@ -88,7 +97,7 @@ async function initializeGapiClient() {
 
 window.gisLoaded = function() {
   gisInited = true;
-  if (CLIENT_ID) {
+  if (CLIENT_ID && CLIENT_SECRET) {
     initTokenClient();
   }
 };
@@ -96,6 +105,7 @@ window.gisLoaded = function() {
 function initTokenClient() {
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
+    client_secret: CLIENT_SECRET,
     scope: 'https://www.googleapis.com/auth/calendar.readonly',
     callback: () => {}
   });
