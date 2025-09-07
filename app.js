@@ -1,34 +1,59 @@
-function promptForCredentials() {
-  alert(
-    'Ensure you have configured the OAuth consent screen and enabled the Calendar API in the Google Cloud Console.'
-  );
-  const clientId = prompt('Enter your OAuth Client ID:');
-  const apiKey = prompt('Enter your API Key:');
-  if (!clientId || !apiKey) {
-    throw new Error('Credentials are required.');
-  }
+function saveCredentials(clientId, apiKey) {
   sessionStorage.setItem('CLIENT_ID', clientId);
   sessionStorage.setItem('API_KEY', apiKey);
-  return { clientId, apiKey };
 }
 
-function loadCredentials() {
-  let clientId = sessionStorage.getItem('CLIENT_ID');
-  let apiKey = sessionStorage.getItem('API_KEY');
-  if (!clientId || !apiKey) {
-    ({ clientId, apiKey } = promptForCredentials());
-  }
-  return { clientId, apiKey };
+function getCredentials() {
+  return {
+    clientId: sessionStorage.getItem('CLIENT_ID'),
+    apiKey: sessionStorage.getItem('API_KEY')
+  };
 }
+
+const credModal = new bootstrap.Modal(
+  document.getElementById('credentialsModal')
+);
 
 document.getElementById('refresh').addEventListener('click', refresh);
 document.getElementById('refresh').disabled = true;
 document.getElementById('config').addEventListener('click', () => {
-  ({ clientId: CLIENT_ID, apiKey: API_KEY } = promptForCredentials());
-  gapi.load('client:auth2', initClient);
+  document.getElementById('clientIdInput').value = CLIENT_ID || '';
+  document.getElementById('apiKeyInput').value = API_KEY || '';
+  document.getElementById('clientIdInput').removeAttribute('readonly');
+  document.getElementById('apiKeyInput').removeAttribute('readonly');
+  document.getElementById('saveCredentials').classList.remove('d-none');
+  credModal.show();
 });
 
-let { clientId: CLIENT_ID, apiKey: API_KEY } = loadCredentials();
+document.getElementById('view-creds').addEventListener('click', () => {
+  document.getElementById('clientIdInput').value = CLIENT_ID || '';
+  document.getElementById('apiKeyInput').value = API_KEY || '';
+  document.getElementById('clientIdInput').setAttribute('readonly', true);
+  document.getElementById('apiKeyInput').setAttribute('readonly', true);
+  document.getElementById('saveCredentials').classList.add('d-none');
+  credModal.show();
+});
+
+document.getElementById('saveCredentials').addEventListener('click', () => {
+  const clientId = document.getElementById('clientIdInput').value.trim();
+  const apiKey = document.getElementById('apiKeyInput').value.trim();
+  if (!clientId || !apiKey) {
+    alert('Both Client ID and API Key are required.');
+    return;
+  }
+  saveCredentials(clientId, apiKey);
+  ({ clientId: CLIENT_ID, apiKey: API_KEY } = getCredentials());
+  credModal.hide();
+  document.getElementById('view-creds').classList.remove('d-none');
+  if (gapiInited) {
+    gapi.load('client:auth2', initClient);
+  }
+});
+
+let { clientId: CLIENT_ID, apiKey: API_KEY } = getCredentials();
+if (CLIENT_ID && API_KEY) {
+  document.getElementById('view-creds').classList.remove('d-none');
+}
 
 function formatError(err) {
   if (!err) return 'Unknown error';
@@ -39,8 +64,12 @@ function formatError(err) {
   );
 }
 
+let gapiInited = false;
 window.gapiLoaded = function() {
-  gapi.load('client:auth2', initClient);
+  gapiInited = true;
+  if (CLIENT_ID && API_KEY) {
+    gapi.load('client:auth2', initClient);
+  }
 };
 
 async function initClient() {
