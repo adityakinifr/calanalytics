@@ -1,15 +1,18 @@
-# Calendar Analytics Chrome Extension
+# Calendar Analytics Web App
 
-This repository provides a Chrome extension that analyzes your Google Calendar and
-produces statistics on the most frequent meetings. It can highlight meetings with
-specific groups such as executive team members, Gartner analysts, or direct reports.
+This repository provides a standalone web application that analyzes your Google
+Calendar and produces statistics on the most frequent meetings. It can
+highlight meetings with specific groups such as executive team members,
+Gartner analysts, or direct reports.
 
 ## Setup
 
-1. In the Google Cloud Console create a project and enable the **Google Calendar API**.
-2. Create OAuth credentials for a Chrome extension and copy the client ID.
-3. Edit `manifest.json` and replace `YOUR_CLIENT_ID.apps.googleusercontent.com` with your
-   own client ID.
+1. In the Google Cloud Console create a project and enable the **Google
+   Calendar API**.
+2. Create OAuth credentials for a Web application and an API key. Add
+   `http://localhost:8080` as an authorized JavaScript origin.
+3. Edit `app.js` and replace `YOUR_CLIENT_ID` and `YOUR_API_KEY` with your own
+   credentials.
 4. Optionally edit `config.json` to specify emails for key groups:
 
 ```json
@@ -20,17 +23,23 @@ specific groups such as executive team members, Gartner analysts, or direct repo
 }
 ```
 
-5. Load the extension in Chrome:
-   - Open `chrome://extensions`.
-   - Enable **Developer mode**.
-   - Click **Load unpacked** and select this folder.
+## Run
 
-## Usage
+1. Install dependencies:
 
-1. Navigate to [Google Calendar](https://calendar.google.com) and ensure you are signed in.
-2. Click the extension icon and press **Refresh Stats**.
-3. The popup will display the top attendees from the last 90 days along with counts for the
-   configured groups.
+   ```bash
+   npm install
+   ```
 
-The extension uses the existing Google account session; no server-side component is
-required.
+2. Start a local server:
+
+   ```bash
+   npm start
+   ```
+
+3. Navigate to <http://localhost:8080> in your browser and click **Refresh
+   Stats**.
+
+The application uses your existing Google account session and runs entirely in
+the browser; no server-side component is required.
+
