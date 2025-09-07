@@ -1,8 +1,12 @@
 {
-  "name": "calendar-analytics-extension",
+  "name": "calendar-analytics-webapp",
   "version": "1.0.0",
-  "description": "Chrome extension for Google Calendar analytics",
+  "description": "Standalone web app for Google Calendar analytics",
   "scripts": {
+    "start": "http-server -c-1",
     "test": "echo \"No tests specified\""
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
   }
 }

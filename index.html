@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Calendar Analytics</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 20px auto;
+    }
+    button {
+      margin-bottom: 10px;
+    }
+    pre {
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <h2>Calendar Analytics</h2>
+  <button id="refresh">Refresh Stats</button>
+  <pre id="output"></pre>
+  <script src="app.js"></script>
+  <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+</body>
+</html>
+
