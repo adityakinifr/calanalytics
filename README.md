@@ -9,8 +9,13 @@ Gartner analysts, or direct reports.
 
 1. In the Google Cloud Console create a project and enable the **Google
    Calendar API**.
-2. Create OAuth credentials for a Web application and an API key. Add
-   `http://localhost:8080` as an authorized JavaScript origin.
+2. Under **APIs & Services → Credentials**:
+   - Configure an OAuth consent screen. When prompted for scopes, add
+     `https://www.googleapis.com/auth/calendar.readonly` so the app can read
+     your calendar events.
+   - Create an OAuth client ID for a Web application. Add
+     `http://localhost:8080` as an authorized JavaScript origin.
+   - Create an API key.
 3. Edit `app.js` and replace `YOUR_CLIENT_ID` and `YOUR_API_KEY` with your own
    credentials.
 4. Optionally edit `config.json` to specify emails for key groups:
