@@ -329,7 +329,7 @@ async function fetchConfig() {
   }
 }
 
-async function fetchEvents() {
+async function fetchEvents(onProgress) {
   const now = new Date();
   const timeMin = new Date(
     now.getTime() - 90 * 24 * 60 * 60 * 1000
@@ -346,6 +346,7 @@ async function fetchEvents() {
       pageToken
     });
     events = events.concat(res.result.items || []);
+    onProgress?.(events.length);
     pageToken = res.result.nextPageToken;
   } while (pageToken);
   return events;
@@ -465,7 +466,9 @@ async function getStats(onProgress) {
   onProgress?.('Loading configuration...');
   const config = await fetchConfig();
   onProgress?.('Fetching calendar events...');
-  const events = await fetchEvents();
+  const events = await fetchEvents(count => {
+    onProgress?.(`Fetching calendar events... (${count})`);
+  });
   onProgress?.('Computing statistics...');
   return computeStats(events, config);
 }
