@@ -142,22 +142,23 @@ function renderStats(stats) {
 }
 
 async function refresh() {
-  document.getElementById('output').textContent = 'Loading...';
+  const output = document.getElementById('output');
+  output.textContent = 'Requesting access token...';
   tokenClient.callback = async resp => {
     if (resp.error !== undefined) {
       console.error('Error retrieving access token', resp);
-      document.getElementById('output').textContent =
-        'Error: ' + formatError(resp);
+      output.textContent = 'Error: ' + formatError(resp);
       return;
     }
     gapi.client.setToken(resp);
     try {
-      const stats = await getStats();
+      const stats = await getStats(message => {
+        output.textContent = message;
+      });
       renderStats(stats);
     } catch (err) {
       console.error('Error refreshing stats', err);
-      document.getElementById('output').textContent =
-        'Error: ' + formatError(err);
+      output.textContent = 'Error: ' + formatError(err);
     }
   };
   const prompt = gapi.client.getToken() ? '' : 'consent';
@@ -220,11 +221,12 @@ function computeStats(events, config) {
   return { top_attendees, exec_team, gartner_analysts, direct_reports };
 }
 
-async function getStats() {
-  const [config, events] = await Promise.all([
-    fetchConfig(),
-    fetchEvents()
-  ]);
+async function getStats(onProgress) {
+  onProgress?.('Loading configuration...');
+  const config = await fetchConfig();
+  onProgress?.('Fetching calendar events...');
+  const events = await fetchEvents();
+  onProgress?.('Computing statistics...');
   return computeStats(events, config);
 }
 
