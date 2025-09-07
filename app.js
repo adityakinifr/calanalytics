@@ -31,6 +31,15 @@ function parseEmails(text) {
     .filter(e => e);
 }
 
+function startOfWeek(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = (day + 6) % 7;
+  d.setDate(d.getDate() - diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
 // Globals used across the application. Declared early to prevent
 // ReferenceError when they are accessed before initialization.
 let tokenClient;
@@ -215,14 +224,15 @@ function renderCharts(stats) {
   const countCtx = document.getElementById('countChart').getContext('2d');
   charts.push(
     new Chart(countCtx, {
-      type: 'bar',
+      type: 'line',
       data: {
-        labels: stats.top_by_count.map(([email]) => email),
+        labels: stats.weekly_labels,
         datasets: [
           {
-            label: 'Meetings',
-            data: stats.top_by_count.map(([, c]) => c),
-            backgroundColor: 'rgba(54, 162, 235, 0.5)'
+            label: 'Meetings per Week',
+            data: stats.weekly_counts,
+            fill: false,
+            borderColor: 'rgba(54, 162, 235, 0.8)'
           }
         ]
       }
@@ -231,14 +241,15 @@ function renderCharts(stats) {
   const timeCtx = document.getElementById('timeChart').getContext('2d');
   charts.push(
     new Chart(timeCtx, {
-      type: 'bar',
+      type: 'line',
       data: {
-        labels: stats.top_by_time.map(([email]) => email),
+        labels: stats.weekly_labels,
         datasets: [
           {
-            label: 'Hours',
-            data: stats.top_by_time.map(([, t]) => t),
-            backgroundColor: 'rgba(75, 192, 192, 0.5)'
+            label: 'Hours per Week',
+            data: stats.weekly_hours,
+            fill: false,
+            borderColor: 'rgba(75, 192, 192, 0.8)'
           }
         ]
       }
@@ -354,13 +365,20 @@ async function fetchEvents() {
 function computeStats(events, config) {
   const countMap = new Map();
   const timeMap = new Map();
+  const weeklyCount = new Map();
+  const weeklyTime = new Map();
   const gartnerStats = {};
   for (const event of events) {
     const startStr = event.start?.dateTime || event.start?.date;
     const endStr = event.end?.dateTime || event.end?.date;
     if (!startStr || !endStr) continue;
-    const duration = (new Date(endStr) - new Date(startStr)) / 36e5;
+    const startDate = new Date(startStr);
+    const endDate = new Date(endStr);
+    const duration = (endDate - startDate) / 36e5;
     if (duration <= 0) continue;
+    const weekKey = startOfWeek(startDate).toISOString().slice(0, 10);
+    weeklyCount.set(weekKey, (weeklyCount.get(weekKey) || 0) + 1);
+    weeklyTime.set(weekKey, (weeklyTime.get(weekKey) || 0) + duration);
     const attendees = event.attendees || [];
     for (const att of attendees) {
       if (att.responseStatus === 'declined') continue;
@@ -413,6 +431,9 @@ function computeStats(events, config) {
   const top_by_time = Array.from(timeMap.entries())
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10);
+  const weeklyLabels = Array.from(weeklyCount.keys()).sort();
+  const weeklyCounts = weeklyLabels.map(k => weeklyCount.get(k));
+  const weeklyHours = weeklyLabels.map(k => weeklyTime.get(k) || 0);
   const exec_team = {};
   for (const email of config.exec_team || []) {
     const e = email.toLowerCase();
@@ -457,7 +478,10 @@ function computeStats(events, config) {
     gartner_analysts,
     direct_reports,
     per_attendee,
-    gartner_meetings: gartnerStats
+    gartner_meetings: gartnerStats,
+    weekly_labels: weeklyLabels,
+    weekly_counts: weeklyCounts,
+    weekly_hours: weeklyHours
   };
 }
 
