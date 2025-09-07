@@ -16,8 +16,9 @@ Gartner analysts, or direct reports.
    - Create an OAuth client ID for a Web application. Add
      `http://localhost:8080` as an authorized JavaScript origin.
    - Create an API key.
-3. Edit `app.js` and replace `YOUR_CLIENT_ID` and `YOUR_API_KEY` with your own
-   credentials.
+3. When you first launch the app you will be prompted in the browser to enter
+   your OAuth client ID and API key. The app stores these in `localStorage` so
+   you only need to provide them once.
 4. Optionally edit `config.json` to specify emails for key groups:
 
 ```json

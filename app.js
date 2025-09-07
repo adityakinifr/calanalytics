@@ -1,8 +1,34 @@
-const CLIENT_ID = 'YOUR_CLIENT_ID.apps.googleusercontent.com';
-const API_KEY = 'YOUR_API_KEY';
+function promptForCredentials() {
+  alert(
+    'Ensure you have configured the OAuth consent screen and enabled the Calendar API in the Google Cloud Console.'
+  );
+  const clientId = prompt('Enter your OAuth Client ID:');
+  const apiKey = prompt('Enter your API Key:');
+  if (!clientId || !apiKey) {
+    throw new Error('Credentials are required.');
+  }
+  localStorage.setItem('CLIENT_ID', clientId);
+  localStorage.setItem('API_KEY', apiKey);
+  return { clientId, apiKey };
+}
+
+function loadCredentials() {
+  let clientId = localStorage.getItem('CLIENT_ID');
+  let apiKey = localStorage.getItem('API_KEY');
+  if (!clientId || !apiKey) {
+    ({ clientId, apiKey } = promptForCredentials());
+  }
+  return { clientId, apiKey };
+}
 
 document.getElementById('refresh').addEventListener('click', refresh);
 document.getElementById('refresh').disabled = true;
+document.getElementById('config').addEventListener('click', () => {
+  promptForCredentials();
+  location.reload();
+});
+
+const { clientId: CLIENT_ID, apiKey: API_KEY } = loadCredentials();
 
 window.gapiLoaded = function() {
   gapi.load('client:auth2', initClient);
