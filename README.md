@@ -53,3 +53,6 @@ Gartner analysts, or direct reports.
 The application uses your existing Google account session and runs entirely in
 the browser; no server-side component is required.
 
+While calendar data is being fetched, the charts update progressively so you can
+see statistics as soon as they become available.
+
