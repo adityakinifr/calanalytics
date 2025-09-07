@@ -15,11 +15,12 @@ Gartner analysts, or direct reports.
      `https://www.googleapis.com/auth/calendar.readonly` so the app can read
      your calendar events.
    - Create an OAuth client ID for a Web application. Add
-     `http://localhost:8080` as an authorized JavaScript origin.
-   - Create an API key.
+     `http://localhost:8080` as an authorized JavaScript origin. Note the
+     generated client ID (the client secret is not required in this
+     client-side app).
 3. When you first launch the app you will be prompted in the browser to enter
-   your OAuth client ID and API key. The app stores these in `localStorage` so
-   you only need to provide them once.
+   your OAuth client ID. The app stores this in `sessionStorage` so you only
+   need to provide it once per session.
 4. Optionally edit `config.json` to specify emails for key groups:
 
 ```json
