@@ -10,8 +10,32 @@ function getCredentials() {
   };
 }
 
+function saveStakeholderConfig(config) {
+  localStorage.setItem('STAKEHOLDERS_CONFIG', JSON.stringify(config));
+}
+
+function getStakeholderConfig() {
+  const raw = localStorage.getItem('STAKEHOLDERS_CONFIG');
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    return null;
+  }
+}
+
+function parseEmails(text) {
+  return text
+    .split(/[\s,]+/)
+    .map(e => e.trim().toLowerCase())
+    .filter(e => e);
+}
+
 const credModal = new bootstrap.Modal(
   document.getElementById('credentialsModal')
+);
+const stakeholderModal = new bootstrap.Modal(
+  document.getElementById('stakeholdersModal')
 );
 
 document.getElementById('refresh').addEventListener('click', refresh);
@@ -23,6 +47,26 @@ document.getElementById('config').addEventListener('click', () => {
   document.getElementById('clientSecretInput').removeAttribute('readonly');
   document.getElementById('saveCredentials').classList.remove('d-none');
   credModal.show();
+});
+
+document.getElementById('configStakeholders').addEventListener('click', async () => {
+  const cfg = await fetchConfig();
+  document.getElementById('execTeamInput').value = (cfg.exec_team || []).join(', ');
+  document.getElementById('gartnerInput').value = (cfg.gartner_analysts || []).join(', ');
+  document.getElementById('directReportsInput').value = (cfg.direct_reports || []).join(', ');
+  stakeholderModal.show();
+});
+
+document.getElementById('saveStakeholders').addEventListener('click', () => {
+  const config = {
+    exec_team: parseEmails(document.getElementById('execTeamInput').value),
+    gartner_analysts: parseEmails(document.getElementById('gartnerInput').value),
+    direct_reports: parseEmails(
+      document.getElementById('directReportsInput').value
+    )
+  };
+  saveStakeholderConfig(config);
+  stakeholderModal.hide();
 });
 
 document.getElementById('view-creds').addEventListener('click', () => {
@@ -166,8 +210,12 @@ async function refresh() {
 }
 
 async function fetchConfig() {
+  const stored = getStakeholderConfig();
+  if (stored) return stored;
   const res = await fetch('config.json');
-  return res.json();
+  const cfg = await res.json();
+  saveStakeholderConfig(cfg);
+  return cfg;
 }
 
 async function fetchEvents() {
