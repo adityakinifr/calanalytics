@@ -1,15 +1,16 @@
-# Calendar Analytics
+# Calendar Analytics Chrome Extension
 
-This project provides a small Flask web application that analyzes a Google Calendar and
+This repository provides a Chrome extension that analyzes your Google Calendar and
 produces statistics on the most frequent meetings. It can highlight meetings with
 specific groups such as executive team members, Gartner analysts, or direct reports.
 
 ## Setup
 
-1. Create a Google Cloud project and enable the **Google Calendar API**.
-2. Create OAuth credentials and download the `credentials.json` file into the project
-   root.
-3. Optionally create a `config.json` file to specify emails for key groups:
+1. In the Google Cloud Console create a project and enable the **Google Calendar API**.
+2. Create OAuth credentials for a Chrome extension and copy the client ID.
+3. Edit `manifest.json` and replace `YOUR_CLIENT_ID.apps.googleusercontent.com` with your
+   own client ID.
+4. Optionally edit `config.json` to specify emails for key groups:
 
 ```json
 {
@@ -19,22 +20,17 @@ specific groups such as executive team members, Gartner analysts, or direct repo
 }
 ```
 
-4. Install dependencies and run the web app:
+5. Load the extension in Chrome:
+   - Open `chrome://extensions`.
+   - Enable **Developer mode**.
+   - Click **Load unpacked** and select this folder.
 
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python app/app.py
-```
+## Usage
 
-5. Open `http://localhost:5000` in your browser. Authorize access to your calendar and
-   then view the meeting statistics.
+1. Navigate to [Google Calendar](https://calendar.google.com) and ensure you are signed in.
+2. Click the extension icon and press **Refresh Stats**.
+3. The popup will display the top attendees from the last 90 days along with counts for the
+   configured groups.
 
-The statistics are computed for the last 90 days and return the top attendees along with
-counts for the configured groups.
-
-## Notes
-
-The application stores OAuth tokens locally in `token.json`. Remove this file if you
-want to trigger the authorization flow again.
+The extension uses the existing Google account session; no server-side component is
+required.
