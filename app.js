@@ -214,6 +214,14 @@ function renderStats(stats) {
       );
     }
   }
+  if ((stats.all_day_events || []).length) {
+    lines.push('');
+    lines.push('All Day Events:');
+    for (const ev of stats.all_day_events) {
+      const range = ev.end && ev.end !== ev.start ? `${ev.start} - ${ev.end}` : ev.start;
+      lines.push(`  ${ev.summary}: ${range}`);
+    }
+  }
   document.getElementById('output').textContent = lines.join('\n');
   renderCharts(stats);
 }
@@ -378,9 +386,19 @@ function computeStats(events, config) {
   const weeklyCount = new Map();
   const weeklyTime = new Map();
   const gartnerStats = {};
+  const allDayEvents = [];
   for (const event of events) {
-    const startStr = event.start?.dateTime || event.start?.date;
-    const endStr = event.end?.dateTime || event.end?.date;
+    const isAllDay = event.start?.date && !event.start?.dateTime;
+    if (isAllDay) {
+      allDayEvents.push({
+        summary: event.summary || '(No title)',
+        start: event.start.date,
+        end: event.end?.date
+      });
+      continue;
+    }
+    const startStr = event.start?.dateTime;
+    const endStr = event.end?.dateTime;
     if (!startStr || !endStr) continue;
     const startDate = new Date(startStr);
     const endDate = new Date(endStr);
@@ -491,7 +509,8 @@ function computeStats(events, config) {
     gartner_meetings: gartnerStats,
     weekly_labels: weeklyLabels,
     weekly_counts: weeklyCounts,
-    weekly_hours: weeklyHours
+    weekly_hours: weeklyHours,
+    all_day_events: allDayEvents
   };
 }
 
