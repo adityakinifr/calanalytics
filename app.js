@@ -223,7 +223,29 @@ function renderStats(stats) {
     }
   }
   document.getElementById('output').textContent = lines.join('\n');
+  renderGartnerTable(stats.gartner_events);
   renderCharts(stats);
+}
+
+function renderGartnerTable(events) {
+  const container = document.getElementById('gartnerTable');
+  container.innerHTML = '';
+  if (!events || !events.length) return;
+  const table = document.createElement('table');
+  table.className = 'table table-bordered table-sm';
+  const thead = document.createElement('thead');
+  thead.innerHTML =
+    '<tr><th>Date</th><th>Time</th><th>Reference</th><th>Gartner Attendees</th><th>Other Attendees</th></tr>';
+  table.appendChild(thead);
+  const tbody = document.createElement('tbody');
+  events.forEach(ev => {
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      `<td>${ev.date}</td><td>${ev.time}</td><td>${ev.reference}</td><td>${ev.gartner.join(', ')}</td><td>${ev.others.join(', ')}</td>`;
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  container.appendChild(table);
 }
 
 function renderCharts(stats) {
@@ -386,6 +408,7 @@ function computeStats(events, config) {
   const weeklyCount = new Map();
   const weeklyTime = new Map();
   const gartnerStats = {};
+  const gartnerEvents = [];
   const allDayEvents = [];
   for (const event of events) {
     const isAllDay = event.start?.date && !event.start?.dateTime;
@@ -415,8 +438,10 @@ function computeStats(events, config) {
       countMap.set(email, (countMap.get(email) || 0) + 1);
       timeMap.set(email, (timeMap.get(email) || 0) + duration);
     }
-    const summary = (event.summary || '').toLowerCase();
-    const description = (event.description || '').toLowerCase();
+    const summaryRaw = event.summary || '';
+    const summary = summaryRaw.toLowerCase();
+    const descriptionRaw = event.description || '';
+    const description = descriptionRaw.toLowerCase();
     const attEmails = attendees
       .map(a => a.email ? a.email.toLowerCase() : '')
       .filter(Boolean);
@@ -430,8 +455,29 @@ function computeStats(events, config) {
         description.match(/(inquiry|briefing)/i);
       const type = typeMatch ? typeMatch[1].toLowerCase() : 'other';
       const analystMatch =
-        event.description && event.description.match(/analyst\s*:\s*([^\n]+)/i);
+        descriptionRaw.match(/(?:analyst|gartner expert(?:s)?)\s*:\s*([^\n]+)/i);
       const analyst = analystMatch ? analystMatch[1].trim() : 'Unknown';
+      const refMatch =
+        descriptionRaw.match(/(?:reference|ref)\s*(?:number|#)?\s*[:#]?\s*([A-Za-z0-9-]+)/i);
+      const reference = refMatch ? refMatch[1].trim() : 'N/A';
+      const gartnerNames =
+        analyst !== 'Unknown'
+          ? analyst.split(/[,;/]+/).map(s => s.trim()).filter(Boolean)
+          : [];
+      const gartnerEmails = attendees
+        .filter(att => att.email && (config.gartner_analysts || []).includes(att.email.toLowerCase()))
+        .map(att => att.email.toLowerCase());
+      const gartnerPeople = gartnerNames.length ? gartnerNames : gartnerEmails;
+      const otherAttendees = attendees
+        .filter(att => att.email && !(config.gartner_analysts || []).includes(att.email.toLowerCase()))
+        .map(att => att.email.toLowerCase());
+      gartnerEvents.push({
+        date: startDate.toLocaleDateString(),
+        time: startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        reference,
+        gartner: gartnerPeople,
+        others: otherAttendees
+      });
       if (!gartnerStats[analyst]) {
         gartnerStats[analyst] = {
           count: 0,
@@ -507,6 +553,7 @@ function computeStats(events, config) {
     direct_reports,
     per_attendee,
     gartner_meetings: gartnerStats,
+    gartner_events: gartnerEvents,
     weekly_labels: weeklyLabels,
     weekly_counts: weeklyCounts,
     weekly_hours: weeklyHours,
